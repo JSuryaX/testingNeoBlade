@@ -1166,6 +1166,7 @@
                         
                         if (boss) {
                             boss.hp = 0;
+                            boss.isDefeated = true; // Menandai boss benar-benar kalah agar tidak looping
                             boss.wingsIntact = false;
                             boss.grabReady = false;
                             boss.color = '#020617';
@@ -2000,12 +2001,19 @@
 
                 this.threshold70Triggered = false; 
                 this.threshold40Triggered = false;
+                this.isDefeated = false; // Status penentu boss benar-benar hancur
             }
 
             update() {
+                if (this.isDefeated) {
+                    this.hp = 0;
+                    this.grabReady = false;
+                    return;
+                }
+
                 if (player.grabbedEnemy === this || qteState.active || player.isGiantSwordActive) return;
 
-                if (this.hp <= 0 && !this.grabReady) {
+                if (this.hp <= 0 && !this.grabReady && !this.isDefeated) {
                     this.grabReady = true;
                     this.hp = 1; 
                     player.triggerGrab();
@@ -2413,6 +2421,8 @@
                     player.invulnerableTimer = 30;
 
                     boss.takeDamage(45); 
+                    player.hp = Math.min(player.maxHp, player.hp + 15); // Restore HP
+                    floatingTexts.push(new FloatingText(player.x + player.w/2, player.y - 30, "+15 HP RESTORED!", "#10b981"));
                     floatingTexts.push(new FloatingText(boss.x + boss.w/2, boss.y - 10, "COUNTER DASH STRIKE! -45 HP", "#22d3ee"));
                     createParticles(boss.x + boss.w/2, boss.y + boss.h/2, '#06b6d4', 40, 14, 30);
                 },
@@ -2445,6 +2455,8 @@
                     boss.state = 'RECOVERY';
                     boss.stateTimer = 180; 
                     
+                    player.hp = Math.min(player.maxHp, player.hp + 15); // Restore HP
+                    floatingTexts.push(new FloatingText(player.x + player.w/2, player.y - 30, "+15 HP RESTORED!", "#10b981"));
                     floatingTexts.push(new FloatingText(boss.x + boss.w/2, boss.y - 15, "SHIELD CRACKED! -60 HP", "#eab308"));
                     createParticles(boss.x + boss.w/2, boss.y + boss.h/2, '#fbbf24', 50, 15, 35);
                     createParticles(boss.x + boss.w/2, boss.y + boss.h/2, '#ffffff', 20, 10, 20);
@@ -2480,6 +2492,9 @@
                     player.vy = -14;
                     player.vx = 10;
                     
+                    player.hp = Math.min(player.maxHp, player.hp + 10); // Restore HP
+                    floatingTexts.push(new FloatingText(player.x + player.w/2, player.y - 30, "+10 HP RESTORED!", "#10b981"));
+                    
                     setTimeout(() => {
                         player.x = boss.x + boss.w/2 - player.w/2;
                         player.y = boss.y - player.h - 10;
@@ -2504,6 +2519,9 @@
                 () => { 
                     screenShake = 45;
                     boss.wingsIntact = false; 
+                    
+                    player.hp = Math.min(player.maxHp, player.hp + 10); // Restore HP
+                    floatingTexts.push(new FloatingText(player.x + player.w/2, player.y - 30, "+10 HP RESTORED!", "#10b981"));
                     
                     createParticles(boss.x, boss.y + boss.h/2, '#e11d48', 40, 15, 30);
                     createParticles(boss.x + boss.w, boss.y + boss.h/2, '#e11d48', 40, 15, 30);
@@ -2539,6 +2557,9 @@
                     player.vy = 0;
                     player.x = boss.x + boss.w/2 - player.w/2;
                     player.y = boss.y - 120;
+                    
+                    player.hp = Math.min(player.maxHp, player.hp + 20); // Restore HP besar
+                    floatingTexts.push(new FloatingText(player.x + player.w/2, player.y - 30, "+20 HP CORE HEAL!", "#10b981"));
                 },
                 () => { 
                     player.vx = -10;
@@ -2953,7 +2974,7 @@
         }
 
         btnStart.addEventListener('click', initGame);
-
+        // --- Main Game Loop ---
         function gameLoop() {
             if (gameState !== 'PLAYING') {
                 if(gameState === 'WIN') drawFrame(true); 
@@ -2983,8 +3004,8 @@
                 if (boss) {
                     boss.update();
                 }
-                // Victory condition: Boss Core is shattered (hp <= 0) AND player runs to the portal!
-                if (boss && boss.hp <= 0 && player.x >= MAP_WIDTH - 150) {
+                // Victory condition: Boss Core is shattered (isDefeated) AND player runs to the portal!
+                if (boss && boss.isDefeated && player.x >= MAP_WIDTH - 150) {
                     setWin();
                     return;
                 }
